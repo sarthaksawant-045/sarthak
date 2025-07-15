@@ -1,16 +1,27 @@
 from flask import Flask, request, jsonify
+import requests
 from indexer import index_documents
 
 app = Flask(__name__)
 
-@app.route("/index", methods=["POST"])
-def index():
-    data = request.json
-    if not data or "parsed_docs" not in data:
-        return jsonify({"error": "No parsed_docs provided"}), 400
+@app.route("/trigger-reader", methods=["POST"])
+@app.route("/trigger-reader", methods=["POST"])
+def trigger_reader():
+    try:
+        response = requests.post("http://127.0.0.1:5001/scan")
+        reader_data = response.json()
 
-    count = index_documents(data["parsed_docs"])
-    return jsonify({"message": f"{count} documents indexed successfully."}), 200
+        # Auto-index the returned documents
+        count = index_documents(reader_data.get("parsed_docs", {}))
+
+        return jsonify({
+            "message": "Reader triggered and indexed successfully.",
+            "documents_indexed": count
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(port=5002)
